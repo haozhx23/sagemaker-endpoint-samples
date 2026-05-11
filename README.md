@@ -1,6 +1,6 @@
 # SageMaker Endpoint Samples
 
-在 SageMaker 上部署大模型推理 endpoint 的示例集合。
+在 SageMaker 上部署大模型推理 endpoint 的示例。
 
 ## 支持的模型
 
@@ -10,9 +10,7 @@
 | Qwen3-Omni(双向流式) | [`qwen3-omni/`](./qwen3-omni/) | `ml.g7e.12xlarge` |
 | DeepSeek-V4-Pro | [`deepseek-v4/`](./deepseek-v4/) | `ml.p5en.48xlarge` / `ml.p6-b200.48xlarge` |
 
-## 入口
-
-每个模型目录独立,结构一致:
+## Entries
 
 ```
 <model>/
@@ -32,7 +30,7 @@ python ../common/invoke_endpoint.py   # 3. 调用(HTTP 模型)
 
 基于 vLLM 官方 recipe 部署 `deepseek-ai/DeepSeek-V4-Pro`。参考:[B200](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4-Pro?hardware=b200) / [H200](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4-Pro?hardware=h200)。
 
-提供 B200 / H200 两套部署脚本,共用同一镜像:
+提供 B200 / H200 两套部署脚本，共用同一镜像:
 
 ```bash
 cd deepseek-v4/docker && ./build.sh && cd ..
@@ -42,4 +40,4 @@ python deploy_h200.py    # 8× H200, ml.p5en.48xlarge
 python deploy_b200.py    # 8× B200, ml.p6-b200.48xlarge
 ```
 
-部署参数通过 `VLLM_SERVE_ARGS` 环境变量注入,内容即 vLLM recipe 命令原文,修改无需重建镜像。`docker/serve` 使用 `xargs` 解析该变量并保留 shell 引号语义,支持含空格的 JSON 值与嵌套 config 语法(如 `--attention_config.use_fp4_indexer_cache=True`)。
+部署参数通过 `VLLM_SERVE_ARGS` 环境变量注入,内容即 vLLM recipe 命令原文,修改无需重建镜像。
