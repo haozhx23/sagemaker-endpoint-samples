@@ -2,13 +2,14 @@ import time
 import boto3
 
 
-IAM_ROLE = "arn:aws:iam::1234567890:role/xxxxx"
-TRAINING_PLAN_ARN = "arn:aws:sagemaker:us-east-2:1234567890:training-plan/yyyyy"
-REGION = "us-east-2"
+IAM_ROLE = "<YOUR_SAGEMAKER_EXECUTION_ROLE_ARN>"
+TRAINING_PLAN_ARN = "<YOUR_TRAINING_PLAN_ARN>"
+REGION = "<YOUR_REGION>"
+ACCOUNT_ID = "<YOUR_ACCOUNT_ID>"
 
 
 # vLLM container
-INFERENCE_IMAGE = f"1234567890.dkr.ecr.{REGION}.amazonaws.com/vllm:qwen35"
+INFERENCE_IMAGE = f"{ACCOUNT_ID}.dkr.ecr.{REGION}.amazonaws.com/vllm:qwen35"
 INSTANCE_TYPE = "ml.p5en.48xlarge"
 TIMEOUT = 3600
 

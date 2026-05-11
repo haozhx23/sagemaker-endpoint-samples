@@ -1,28 +1,45 @@
-# Qwen3.5 SageMaker Endpoint 部署
+# SageMaker Endpoint Samples
 
-## 1. 构建镜像
+在 SageMaker 上部署大模型推理 endpoint 的示例集合。
 
-修改 `docker-vllm/build.sh` 中的账号和区域：
-```bash
-ACCOUNT_ID=<your-account-id>
-REGION=<your-region>
+## 支持的模型
+
+| 模型 | 目录 | 实例 |
+|------|------|------|
+| Qwen3.5 | [`qwen35/`](./qwen35/) | `ml.p5en.48xlarge` |
+| Qwen3-Omni(双向流式) | [`qwen3-omni/`](./qwen3-omni/) | `ml.g7e.12xlarge` |
+| DeepSeek-V4-Pro | [`deepseek-v4/`](./deepseek-v4/) | `ml.p5en.48xlarge` / `ml.p6-b200.48xlarge` |
+
+## 入口
+
+每个模型目录独立,结构一致:
+
+```
+<model>/
+├── deploy*.py       # SageMaker 部署脚本(一个或多个)
+└── docker/          # 镜像构建 (Dockerfile + build.sh + serve | app.py)
 ```
 
-构建并推送镜像：
+通用部署流程:
+
 ```bash
-cd docker-vllm && ./build.sh
+cd <model>/docker && ./build.sh    # 1. 构建推送镜像
+cd .. && python deploy*.py         # 2. 部署 endpoint
+python ../common/invoke_endpoint.py   # 3. 调用(HTTP 模型)
 ```
 
-## 2. 部署 Endpoint
+## DeepSeek-V4-Pro
 
-修改 `deploy_qwen35_vllm.py` 中的配置（REGION, IAM_ROLE, INFERENCE_IMAGE 等），然后运行：
+基于 vLLM 官方 recipe 部署 `deepseek-ai/DeepSeek-V4-Pro`。参考:[B200](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4-Pro?hardware=b200) / [H200](https://recipes.vllm.ai/deepseek-ai/DeepSeek-V4-Pro?hardware=h200)。
+
+提供 B200 / H200 两套部署脚本,共用同一镜像:
+
 ```bash
-python deploy_qwen35_vllm.py
+cd deepseek-v4/docker && ./build.sh && cd ..
+
+# 配置脚本顶部的 REGION / ACCOUNT_ID / IAM_ROLE / TRAINING_PLAN_ARN 后执行:
+python deploy_h200.py    # 8× H200, ml.p5en.48xlarge
+python deploy_b200.py    # 8× B200, ml.p6-b200.48xlarge
 ```
 
-## 3. 调用 Endpoint
-
-修改 `invoke_endpoint.py` 中的 `ENDPOINT_NAME`，然后运行：
-```bash
-python invoke_endpoint.py
-```
+部署参数通过 `VLLM_SERVE_ARGS` 环境变量注入,内容即 vLLM recipe 命令原文,修改无需重建镜像。`docker/serve` 使用 `xargs` 解析该变量并保留 shell 引号语义,支持含空格的 JSON 值与嵌套 config 语法(如 `--attention_config.use_fp4_indexer_cache=True`)。

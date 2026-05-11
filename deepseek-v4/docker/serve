@@ -1,0 +1,17 @@
+#!/bin/bash
+# Runs `vllm serve` with args supplied via the VLLM_SERVE_ARGS env var.
+# xargs parses the string respecting shell quoting, so JSON values stay intact.
+#
+#   VLLM_SERVE_ARGS="deepseek-ai/DeepSeek-V4-Pro --trust-remote-code \
+#                    --compilation-config '{\"mode\": 0}' ..."
+set -e
+
+# Port 8080 required by SageMaker.
+ARGS=(--port 8080)
+
+if [ -n "$VLLM_SERVE_ARGS" ]; then
+    readarray -t PARSED < <(xargs -n1 <<<"$VLLM_SERVE_ARGS")
+    ARGS+=("${PARSED[@]}")
+fi
+
+exec standard-supervisor vllm serve "${ARGS[@]}"
