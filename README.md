@@ -41,3 +41,36 @@ python deploy_b200.py    # 8× B200, ml.p6-b200.48xlarge
 ```
 
 部署参数通过 `VLLM_SERVE_ARGS` 环境变量注入,内容即 vLLM recipe 命令原文,修改无需重建镜像。
+
+## OpenAI-Compatible 调用(新特性)
+
+[`openai-api/`](./openai-api/) 演示 SageMaker AI endpoint 的 [OpenAI 兼容调用路径](https://aws.amazon.com/blogs/machine-learning/announcing-openai-compatible-api-support-for-amazon-sagemaker-ai-endpoints/)(`/openai/v1/*` + bearer token,2026-05 新特性)。**容器层无需任何调整** —— 任何已部署、能 serve OpenAI Chat Completions 的 endpoint(包括本仓库的 `qwen35/` / `deepseek-v4/` 等)都可直接调用。
+
+```bash
+cd openai-api
+pip install -r requirements.txt
+
+# 编辑 invoke_*.py 顶部的 ENDPOINT_NAME / REGION / MODEL 占位符
+python invoke_basic.py        # OpenAI SDK 非流式
+python invoke_streaming.py    # OpenAI SDK 流式
+```
+
+调用方 IAM 至少需要:
+
+```json
+{
+  "Version": "2012-10-17",
+  "Statement": [
+    {"Effect": "Allow",
+     "Action": "sagemaker:InvokeEndpoint",
+     "Resource": "arn:aws:sagemaker:<REGION>:<ACCOUNT_ID>:endpoint/<ENDPOINT_NAME>"},
+    {"Effect": "Allow",
+     "Action": "sagemaker:CallWithBearerToken",
+     "Resource": "*"}
+  ]
+}
+```
+
+`CallWithBearerToken` 不支持 resource-level 限制 —— 生成 token 的角色一定要严格收敛权限(只授予它实际需要调用的 endpoint 上的 `InvokeEndpoint`),避免 token 泄漏被滥用到其他 endpoint。
+
+> **Streaming caveat**:SageMaker 在 `text/event-stream` 响应里多包了一层 AWS EventStream binary frame,直接用标准 OpenAI SDK `stream=True` 会抛 `UnicodeDecodeError`。`sm_token.SageMakerOpenAITransport` 在 httpx 层透明拆封装,装上后业务代码就是标准 OpenAI 写法。
